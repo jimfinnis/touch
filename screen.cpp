@@ -4,8 +4,8 @@
  *
  */
 
-#include <TouchScreen.h>
-#include <TFTv2.h>
+#include "TouchScreen.h"
+#include "TFTv2.h"
 
 #include "screen.h"
 
