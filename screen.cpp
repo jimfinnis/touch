@@ -9,6 +9,8 @@
 
 #include "screen.h"
 
+#define SCREENWIDTH 240
+
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // mega
 #define YP A2   // must be an analog pin, use "An" notation!
 #define XM A1   // must be an analog pin, use "An" notation!
@@ -47,7 +49,36 @@ static TouchScreen ts = TouchScreen(XP, YP, XM, YM);
 
 #define PRESSURETHRESHOLD 1
 
+static const int FONTSIZEX=6;
+static const int FONTSIZEY=8;
+static const int FONTSCALE=2;
+static const int BUTTONHEIGHT = 50;
+static const int BUTTONMARGIN = 4; // margin around button text in X
+static const int BUTTONROWSEP = 10;
+static const int BUTTONPADDING = 10; // padding around button in X
 
+//static const int BMINWIDTH = 40; // button min width for old method of width
+
+void panic(int n,const char *t){
+    Tft.fillRectangle(0,0,240,320,0);
+    Tft.drawString("Fatal error",0,0,3,WHITE);
+    Tft.drawNumber(n,0,100,4,RED);
+    
+    pinMode(13,OUTPUT);
+    for(;;){
+        for(int i=0;i<n;i++){
+            digitalWrite(13,HIGH);
+            delay(300);
+            digitalWrite(13,LOW);
+            delay(300);
+        }
+        delay(700);
+    }
+    Serial.println("Fatal error ");Serial.print(n);
+    Serial.print(": ");Serial.println(t);
+}
+    
+        
 
 Screen::Screen(){
     nbuttons = 0;
@@ -64,6 +95,71 @@ void Screen::draw(){
     }
 }
 
+void Screen::fixup(){
+    
+    uint8_t nrows=0;
+    uint8_t rowcounts[10];
+    float rowscales[10];
+    
+    // first get row lengths
+    for(int i=0;i<nbuttons;i++){
+        Button *b = buttons[i];
+        if(b->y < 0){
+            if(b->x == NEWROW){
+                rowcounts[nrows]=0;
+                float sc = 1;
+                if(b->y == SCALE){
+                    sc = b->w;
+                    sc = sc / (float)b->h;
+                }
+                rowscales[nrows]=sc;
+                nrows++;
+            }
+            if(nrows==0){
+                panic(2,"must use NEWROW in first row");
+            }
+                
+            rowcounts[nrows-1]++;
+        }
+    }
+    
+    // now position on the screen
+    int curbut=0;
+    int sy = 0;
+    for(int i=0;i<nrows;i++){
+        int rowct = rowcounts[i];
+        int slotwidth = SCREENWIDTH/rowct;
+        Serial.print("Row : ");Serial.println(rowct);
+        // consume N buttons
+        for(int j=0;j<rowct;j++){
+            Button *b = buttons[curbut++];
+            // centre of button
+            int x = slotwidth*j; x+=slotwidth>>1;
+            // actual button width
+            /* this code sets the margin narrowly around the text
+               int w = strlen(b->text)*FONTSIZEX*FONTSCALE+BUTTONMARGIN;
+               if(w<BMINWIDTH)w=BMINWIDTH;
+             */
+            int w = slotwidth - BUTTONPADDING;
+            // left edge of button
+            x -= w/2;
+            b->x = x;
+            b->y = sy;
+            b->w = w;
+            b->h = BUTTONHEIGHT*rowscales[i];
+        }
+        sy+=BUTTONHEIGHT*rowscales[i]+BUTTONROWSEP;
+        
+    }
+    
+}
+/*
+void Screen::registerButton(int id,const char *txt, uint32_t col){
+    
+    
+    
+}
+*/
 Button *Screen::poll(){
     // is there a button press?
     
@@ -87,28 +183,32 @@ Button *Screen::poll(){
 
     
 void Button::updateAndDraw(){
-    static const int FONTSIZEX=6;
-    static const int FONTSIZEY=8;
-    static const int FONTSCALE=2;
-    
 
     if(presscount){
         if(!--presscount)dirty=true;
     }
-    if(dirty){
+    if(dirty && y>=0){ // only redraw dirty, fixed up buttons
         dirty = false;
         Serial.print("Drawing button ");Serial.print(text);Serial.print(" at ");
         Serial.print(x);Serial.print(",");Serial.print(y);Serial.print(" with col ");Serial.println(col);
         if(presscount){
             Tft.fillRectangle(x,y,w,h,col);
         } else {
-            Tft.fillRectangle(x,y,w,h,0);
-            Tft.drawRectangle(x,y,w,h,col);
-            int ymid = y+h/2;
             int xmid = x+w/2;
-            Tft.drawString((char*)(text),
-                           xmid-strlen(text)*FONTSIZEX*FONTSCALE/2,
-                           ymid-FONTSIZEY*FONTSCALE/2,FONTSCALE,col);
+            int ymid = y+h/2;
+            
+            if(latching && isdown){
+                Tft.fillRectangle(x,y,w,h,col);
+                Tft.drawString((char*)(text),
+                               xmid-strlen(text)*FONTSIZEX*FONTSCALE/2,
+                               ymid-FONTSIZEY*FONTSCALE/2,FONTSCALE,0);
+            } else {
+                Tft.fillRectangle(x,y,w,h,0);
+                Tft.drawRectangle(x,y,w,h,col);
+                Tft.drawString((char*)(text),
+                               xmid-strlen(text)*FONTSIZEX*FONTSCALE/2,
+                               ymid-FONTSIZEY*FONTSCALE/2,FONTSCALE,col);
+            }                
         }
     }
 }
