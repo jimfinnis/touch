@@ -3,17 +3,15 @@
 
 Screen s;
 
+static bool keyhandlingOn = false;
+
 class ArmButton : public Button {
 public:
   ArmButton(int id,const char *txt,uint32_t col,int x=-1,int y=-1,int w=-1,int h=-1) :
   Button(id,txt,col,x,y,w,h){}
 
   virtual void onPress(){
-    if(isdown){
-      Keyboard.begin();
-    } else {
-      Keyboard.end();
-    }
+    keyhandlingOn = isdown;
   }
 };
 
@@ -24,12 +22,14 @@ public:
     strokes = keystrokes;
   }
   virtual void onPress(){
+    if(keyhandlingOn)
     Keyboard.print(strokes);
   }
 };
 
 void setup(){
   Serial.begin(57600);
+  Keyboard.begin();
 
   s.init();
   s.registerButton(new ArmButton(0,"ARM",0xff0000,NEWROW))->setLatching();
