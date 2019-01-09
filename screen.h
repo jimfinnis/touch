@@ -45,6 +45,7 @@ class Button {
         presscount=PRESSLENGTH;
         dirty=true;
         if(latching)isdown=!isdown;
+        onPress();
     }
 
 public:    
@@ -78,6 +79,9 @@ public:
     }
     
     void updateAndDraw();
+    
+    // override if you want to.
+    virtual void onPress(){}
     
 };
 

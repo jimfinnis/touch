@@ -1,20 +1,41 @@
+#include <Keyboard.h>
 #include "screen.h"
 
 Screen s;
+
+class ArmButton : public Button {
+public:
+  ArmButton(int id,const char *txt,uint32_t col,int x=-1,int y=-1,int w=-1,int h=-1) :
+  Button(id,txt,col,x,y,w,h){}
+
+  virtual void onPress(){
+    if(isdown){
+      Keyboard.begin();
+    } else {
+      Keyboard.end();
+    }
+  }
+};
+
+class KeyButton : public Button {
+  const char *strokes;
+public:
+  KeyButton(int id,const char *txt,const char *keystrokes,uint32_t col,int x=-1,int y=-1,int w=-1,int h=-1) : Button(id,txt,col,x,y,w,h) {
+    strokes = keystrokes;
+  }
+  virtual void onPress(){
+    Keyboard.print(strokes);
+  }
+};
 
 void setup(){
   Serial.begin(57600);
 
   s.init();
-  s.registerButton(new Button(0,"ARM",0xff0000,NEWROW))->setLatching();
-  s.registerButton(new Button(1,"A",0xffff00,NEWROW,SCALE,3,2))->setLatching();
-  s.registerButton(new Button(2,"B",0x00ff00));
-  s.registerButton(new Button(1,"C",0xffff00));
-  s.registerButton(new Button(2,"NOT ALERT",0x00ff00,NEWROW));
-  s.registerButton(new Button(1,"ALERT",0xffff00));
-  s.registerButton(new Button(2,"NOT ALERT",0x00ff00,NEWROW));
-  s.registerButton(new Button(1,"ALERT",0xffff00));
-  s.registerButton(new Button(2,"NOT ALERT",0x00ff00,NEWROW));
+  s.registerButton(new ArmButton(0,"ARM",0xff0000,NEWROW))->setLatching();
+  s.registerButton(new KeyButton(1,"A","foo",0xffff00,NEWROW,SCALE,3,2));
+  s.registerButton(new KeyButton(2,"B","bar",0x00ff00));
+  s.registerButton(new KeyButton(3,"C","baz",0xffff00));
   s.fixup();
 }
 
