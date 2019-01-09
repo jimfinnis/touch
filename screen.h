@@ -8,7 +8,8 @@
 #define __SCREEN_H
 
 #define MAXBUTTONS 20
-#define PRESSLENGTH 100
+#define PRESSLENGTH 70
+#define CONFIRMLENGTH 500
 
 #define NEWROW 0
 #define SCALE -2
@@ -33,7 +34,9 @@ class Button {
     uint16_t col; // colour, converted from 888 to 565
     bool dirty; // requires redraw!
     int presscount; // how many frames I have been "pressed down" for, graphically.
+    int confirmcount; // how many frames a confirm has left
     bool latching; // button is latching rather than momentary
+    bool confirm; // button is a momentary with confirm
     
     // used to check button pressage
     bool isPressed(int px,int py){
@@ -45,7 +48,16 @@ class Button {
         presscount=PRESSLENGTH;
         dirty=true;
         if(latching)isdown=!isdown;
-        onPress();
+        if(confirm){
+            if(confirmcount){
+                onPress();
+                confirmcount=0;
+            } else  {
+                confirmcount=CONFIRMLENGTH;
+            }
+        } else {
+            onPress();
+        }
     }
 
 public:    
@@ -66,15 +78,23 @@ public:
         w=_w;
         h=_h;
         text=_t;
-        dirty=true;
         col = col24to16(_c);
         presscount = 0;
         latching = false;
         isdown = false;
+        dirty=true;
+        confirm=false;
+        confirmcount=0;
     }
     
     Button *setLatching(){
         latching=true;
+        confirm=false;
+        return this;
+    }
+    Button *setConfirm(){
+        latching=false;
+        confirm=true;
         return this;
     }
     

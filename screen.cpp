@@ -129,7 +129,7 @@ void Screen::fixup(){
     for(int i=0;i<nrows;i++){
         int rowct = rowcounts[i];
         int slotwidth = SCREENWIDTH/rowct;
-        Serial.print("Row : ");Serial.println(rowct);
+//        Serial.print("Row : ");Serial.println(rowct);
         // consume N buttons
         for(int j=0;j<rowct;j++){
             Button *b = buttons[curbut++];
@@ -185,12 +185,17 @@ Button *Screen::poll(){
 void Button::updateAndDraw(){
 
     if(presscount){
-        if(!--presscount)dirty=true;
+        if(!--presscount)
+            dirty=true;
+    }
+    if(confirmcount){
+        if(!--confirmcount)
+            dirty=true;
     }
     if(dirty && y>=0){ // only redraw dirty, fixed up buttons
         dirty = false;
-        Serial.print("Drawing button ");Serial.print(text);Serial.print(" at ");
-        Serial.print(x);Serial.print(",");Serial.print(y);Serial.print(" with col ");Serial.println(col);
+//        Serial.print("Drawing button ");Serial.print(text);Serial.print(" at ");
+//        Serial.print(x);Serial.print(",");Serial.print(y);Serial.print(" with col ");Serial.println(col);
         if(presscount){
             Tft.fillRectangle(x,y,w,h,col);
         } else {
@@ -202,6 +207,12 @@ void Button::updateAndDraw(){
                 Tft.drawString((char*)(text),
                                xmid-strlen(text)*FONTSIZEX*FONTSCALE/2,
                                ymid-FONTSIZEY*FONTSCALE/2,FONTSCALE,0);
+            } else if(confirm && confirmcount) {
+                Tft.fillRectangle(x,y,w,h,WHITE);
+                Tft.fillRectangle(x+5,y+5,w-10,h-10,BLACK);
+                Tft.drawString((char*)(text),
+                               xmid-strlen(text)*FONTSIZEX*FONTSCALE/2,
+                               ymid-FONTSIZEY*FONTSCALE/2,FONTSCALE,col);
             } else {
                 Tft.fillRectangle(x,y,w,h,0);
                 Tft.drawRectangle(x,y,w,h,col);
