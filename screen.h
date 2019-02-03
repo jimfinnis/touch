@@ -25,6 +25,8 @@ inline uint16_t col24to16(uint32_t rgb){
     return p;
 }
 
+// a basic button that does onPress when pressed. Use setLatching to make it latching rather than
+// momentary, and setConfirm to make it require two presses.
 
 class Button {
     friend class Screen;
@@ -67,9 +69,9 @@ public:
     // Can be used in these ways:
     // (id,txt,c,  x,y,w,h) - manual positioning
     // (id,txt,c,  NEWROW) - auto positioning, start new row - first button must do this
+    // (id,txt,c)       - auto positioning, add to current row
     // (id,txt,c,  NEWROW,SCALE,3,2) - auto positioning, start new row of given height scale  (3/2
     
-    // (id,txt,c)       - auto positioning, add to current row
     
     Button(int _id,const char *_t,uint32_t _c,int _x=-1,int _y=-1,int _w=-1,int _h=-1){
         id=_id;
@@ -100,23 +102,45 @@ public:
     
     void updateAndDraw();
     
-    // override if you want to.
+    // override if you want to. You might not want to for latching buttons,
+    // just read their isdown member.
     virtual void onPress(){}
-    
 };
 
+// a button which, when pressed, changes to another Screen.
+
+class ScreenChangeButton : public Button {
+private:
+    class Screen *screen;
+public:  
+    ScreenChangeButton(int _id,const char *_t,uint32_t _c,class Screen *s,int _x=-1,int _y=-1,int _w=-1,int _h=-1) : 
+      Button(_id,_t,_c,_x,_y,_w,_h){
+      screen = s;
+  }
+
+  virtual void onPress();
+};
+
+// a screen within the system; create some of these and set the 
+// primary screen using ScreenSystem.go().
+
 class Screen {
+    friend class ScreenSystemClass;
     Button *buttons[20];
     int nbuttons;
+    bool screenDirty;
 public:    
     Screen();
-    void init();
     
     Button *registerButton(Button *b){
         if(nbuttons<MAXBUTTONS){
             buttons[nbuttons++]=b;
         }
         return b;
+    }
+
+    void forceRedraw(){
+      screenDirty=true;
     }
     
     // fix up buttons with unassigned positions
@@ -125,5 +149,36 @@ public:
     void draw();
     Button *poll();
 };
+
+// a set of screens; the instance is ScreenSystem.
+
+class ScreenSystemClass {
+private:  
+  Screen *curscreen;
+public:
+  ScreenSystem(Screen *initial){
+    curscreen = initial;
+  }
+
+  // you must call this!
+  void init();
+
+
+  void go(Screen *s){
+    Serial.print("going to screen ");
+    Serial.println(s->nbuttons);
+    curscreen = s;
+  }
+
+  void draw(){
+    curscreen->draw();
+  }
+
+  Button *poll(){
+    return curscreen->poll();
+  }
+};
+
+extern ScreenSystemClass ScreenSystem; // the singleton
 
 #endif /* __SCREEN_H */

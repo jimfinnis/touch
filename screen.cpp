@@ -78,18 +78,23 @@ void panic(int n,const char *t){
     Serial.print(": ");Serial.println(t);
 }
     
-        
+static Screen *curScreen;
 
 Screen::Screen(){
     nbuttons = 0;
+    screenDirty=true;
 }
 
-void Screen::init(){
-    TFT_BL_OFF;
-    Tft.TFTinit();  
-}
 
 void Screen::draw(){
+    if(screenDirty){
+      Tft.fillRectangle(0,0,240,320,0);
+      for(int i=0;i<nbuttons;i++){
+        buttons[i++]->dirty=true;
+      }
+      screenDirty=false;
+    }
+
     for(int i=0;i<nbuttons;i++){
         buttons[i]->updateAndDraw();
     }
@@ -181,14 +186,17 @@ Button *Screen::poll(){
     return NULL;
 }
 
-    
+   
 void Button::updateAndDraw(){
 
     if(presscount){
+        Serial.println("PRESS");
         if(!--presscount)
             dirty=true;
     }
     if(confirmcount){
+        Serial.print("Confirm count: ");
+        Serial.println(confirmcount);
         if(!--confirmcount)
             dirty=true;
     }
@@ -224,4 +232,15 @@ void Button::updateAndDraw(){
     }
 }
 
-    
+
+ScreenSystemClass ScreenSystem;
+
+
+void ScreenSystemClass::init(){
+    TFT_BL_OFF;
+    Tft.TFTinit();  
+}
+
+void ScreenChangeButton::onPress(){
+  ScreenSystem.go(screen);
+}

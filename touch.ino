@@ -1,7 +1,7 @@
 #include <Keyboard.h>
 #include "screen.h"
 
-Screen s;
+Screen scrInit;
 
 static bool keyhandlingOn = false;
 
@@ -38,36 +38,60 @@ public:
   }
 };
 
+Screen scrElite;
+void setupElite(){
+  scrElite.registerButton(new ArmButton(0,"ARM",0xff0000,NEWROW))->setLatching();
+  
+  scrElite.registerButton(new KeyButton(1,"MODE","m",0x00ff00,NEWROW));
+  scrElite.registerButton(new KeyButton(2,"NGHT","\\",0x00ff00));
+  scrElite.registerButton(new SpecialButton(3,"CARGO",KEY_HOME,0x00ff00));
+
+  scrElite.registerButton(new KeyButton(4,"JETT","#",0xff0000,NEWROW))->setConfirm();
+  scrElite.registerButton(new SpecialButton(5,"SILENT",KEY_DELETE,0x0000ff));
+
+  scrElite.registerButton(new KeyButton(6,"CELL","'",0xffff00,NEWROW));
+  scrElite.registerButton(new KeyButton(7,"CHFF","/",0xff00ff));
+  scrElite.registerButton(new KeyButton(7,"HEAT","v",0xff0000));
+
+  scrElite.registerButton(new KeyButton(9,"GRP","N",0xff0000,NEWROW));
+  scrElite.registerButton(new KeyButton(9,"GEAR","L",0x00ff00));
+  scrElite.registerButton(new KeyButton(9,"DPLY","u",0xff0000));
+  
+  scrElite.fixup();
+}
+
+Screen scrNMS;
+void setupNMS(){
+  scrNMS.registerButton(new ArmButton(0,"ARM",0xff0000,NEWROW))->setLatching();
+  scrNMS.registerButton(new KeyButton(1,"PHOTO","9",0x00ff00,NEWROW));
+
+  scrNMS.fixup();
+
+}
+
 void setup(){
   Serial.begin(57600);
-  Keyboard.begin();
+//  Keyboard.begin();
+  ScreenSystem.init();
 
-  s.init();
-  s.registerButton(new ArmButton(0,"ARM",0xff0000,NEWROW))->setLatching();
+  // set up the screens
+
+  setupElite();
+  setupNMS();
+
+  scrInit.registerButton(new ScreenChangeButton(0,"ELITE",0xff0000,&scrElite,NEWROW))->setConfirm();
+  scrInit.registerButton(new ScreenChangeButton(0,"NMS",0x00ff00,&scrNMS,NEWROW))->setConfirm();
+  scrInit.fixup();
+  ScreenSystem.go(&scrInit);
+
   
-  s.registerButton(new KeyButton(1,"MODE","m",0x00ff00,NEWROW));
-  s.registerButton(new KeyButton(2,"NGHT","\\",0x00ff00));
-  s.registerButton(new KeyButton(3,"CRSC","`",0x00ff00));
-
-  s.registerButton(new KeyButton(4,"JETT","#",0xff0000,NEWROW))->setConfirm();
-  s.registerButton(new SpecialButton(5,"SLNT",KEY_DELETE,0x0000ff));
-
-  s.registerButton(new KeyButton(6,"CELL","'",0xffff00,NEWROW));
-  s.registerButton(new KeyButton(7,"CHFF","/",0xff00ff));
-  s.registerButton(new KeyButton(7,"HEAT","/",0xff0000));
-
-  s.registerButton(new KeyButton(9,"GRP","N",0xff0000,NEWROW));
-  s.registerButton(new KeyButton(9,"GEAR","L",0x00ff00));
-  s.registerButton(new KeyButton(9,"DPLY","L",0xff0000));
-  
-  s.fixup();
 }
 
 void loop(){
-  s.draw();
+  ScreenSystem.draw();
   delay(5);
 
-  if(Button *b = s.poll()){
+  if(Button *b = ScreenSystem.poll()){
     Serial.print("Pressed ");Serial.println(b->id);
   }
 }
